@@ -1,11 +1,12 @@
 // TODO: TOMORROW
-//  [ ] - Fix crate importing
 //  [ ] - Fix comment error checking???
 //  [ ] - Add test cases for nested/two-three layer nested
 //  [ ] - Add nesting code
 //  [ ] - Run tests make sure everything is kosher. Deploy.
+pub mod error;
 
 use crate::error::ParseError;
+use enum_as_inner::EnumAsInner;
 use fxhash::FxBuildHasher;
 use indexmap::IndexMap;
 use std::env;
@@ -18,14 +19,37 @@ pub enum Preference {
     PreferEnv,
 }
 
+/// A wrapped type enum useful for allowing polymorphic returns from
+/// the map creation function.
+///
+/// **Examples**
+/// fn main() {
+/// use config::Value;
+/// ```rust
+/// let x = Value::I32(10);
+/// let val = *x.as_i32().unwrap();
+/// ```
+/// }
+#[derive(Debug, EnumAsInner)]
+pub enum Value {
+    I32(i32),
+    I64(i64),
+    F32(f32),
+    F64(f64),
+    String(String),
+    Bool(bool),
+}
+
 /// Provides a simple way to allow question mark syntax in order to
 /// convert environment errors into ParseErrors.
 ///
 /// **Examples**
 ///
+/// fn main() {
 /// ```rust
 /// let my_var = env_or_error("TEST_ENVIRONMENT_VARIABLE")?;
 /// ```
+/// }
 fn env_or_error(key: &str) -> Result<String, ParseError> {
     match env::var_os(key) {
         Some(v) => Ok(v
@@ -41,33 +65,85 @@ fn env_or_error(key: &str) -> Result<String, ParseError> {
     }
 }
 
-fn maybe_yaml_to_string(
+/// Takes a key and a Yaml reference, parses it, and sets the key.
+///
+/// In addition to doing the initial parsing it will also do environment finding. If a given
+/// key is null, or `prefer_env` is true, then it will search the environment for the given
+/// key string and attempt to use that key string's value.
+///
+/// **Examples***
+///
+/// ```rust
+/// let key_str = "DATABASE_CONFIG_PASSWORD";
+/// let map = IndexMap::new();
+/// let maybe_val = Yaml.from_str("test");
+/// maybe_yaml_to_value(&key_str, &maybe_val, false, &map).expect("Didn't work!");
+/// ```
+///
+fn maybe_yaml_to_value(
     key: &str,
     maybe_val: &Yaml,
     prefer_env: bool,
-) -> Result<String, ParseError> {
-    if prefer_env {
-        return env_or_error(key);
-    }
-
+    map: &mut IndexMap<String, Value, FxBuildHasher>,
+) -> Result<(), ParseError> {
     if maybe_val.is_null() {
-        return env_or_error(key);
+        // Because the value is null we have to attempt a full parse of whatever is coming back
+        // from the user's environment since we don't have an indicator from the YAML itself.
+        let val_str = env_or_error(key)?;
+
+        let val = match val_str.parse::<i64>() {
+            Ok(v) => Value::I64(v),
+            Err(_) => match val_str.parse::<f64>() {
+                Ok(v) => Value::F64(v),
+                Err(_) => match val_str.parse::<bool>() {
+                    Ok(v) => Value::Bool(v),
+                    Err(_) => Value::String(val_str),
+                },
+            },
+        };
+
+        map.insert(key.to_string(), val);
+        return Ok(());
     }
 
     if maybe_val.as_str().is_some() {
-        return Ok(maybe_val.as_str().unwrap().to_string());
+        if prefer_env {
+            map.insert(key.to_string(), Value::String(env_or_error(key)?));
+        }
+        let val = maybe_val.as_str().unwrap().to_string();
+        map.insert(key.to_string(), Value::String(val));
+        return Ok(());
     }
 
     if maybe_val.as_i64().is_some() {
-        return Ok(maybe_val.as_i64().unwrap().to_string());
+        if prefer_env {
+            let val = env_or_error(key)?;
+            let e_val = val.parse::<i64>().unwrap();
+            map.insert(key.to_string(), Value::I64(e_val));
+        }
+
+        map.insert(key.to_string(), Value::I64(maybe_val.as_i64().unwrap()));
+        return Ok(());
     }
 
     if maybe_val.as_bool().is_some() {
-        return Ok(maybe_val.as_bool().unwrap().to_string());
+        if prefer_env {
+            let val = env_or_error(key)?;
+            let e_val = val.parse::<bool>().unwrap();
+            map.insert(key.to_string(), Value::Bool(e_val));
+        }
+        map.insert(key.to_string(), Value::Bool(maybe_val.as_bool().unwrap()));
+        return Ok(());
     }
 
     if maybe_val.as_f64().is_some() {
-        return Ok(maybe_val.as_f64().unwrap().to_string());
+        if prefer_env {
+            let val = env_or_error(key)?;
+            let e_val = val.parse::<f64>().unwrap();
+            map.insert(key.to_string(), Value::F64(e_val));
+        }
+        map.insert(key.to_string(), Value::F64(maybe_val.as_f64().unwrap()));
+        Ok(())
     } else {
         let msg = format!("Failed to convert type for {}", key);
         Err(ParseError {
@@ -119,7 +195,7 @@ fn maybe_yaml_to_string(
 pub fn load(
     file_path: &str,
     preference: Option<Preference>,
-) -> Result<IndexMap<String, String, FxBuildHasher>, ParseError> {
+) -> Result<IndexMap<String, Value, FxBuildHasher>, ParseError> {
     let prefer_env = match preference {
         Some(p) => p == Preference::PreferEnv,
         None => false,
@@ -163,11 +239,7 @@ pub fn load(
         // Match and convert to string. At a later time we can try doing after-the-fact conversion
         // based on known maybe val types to go from string -> concrete type. It cannot be done
         // in one function due to generic parameter restrictions.
-        let val = maybe_yaml_to_string(&key_str, maybe_val, prefer_env)?;
-
-        // TODO: Here we can have a parse-try block with the various types.
-
-        config.insert(key_str, val);
+        maybe_yaml_to_value(&key_str, maybe_val, prefer_env, &mut config)?;
     }
 
     Ok(config)
@@ -198,10 +270,10 @@ mod tests {
 
         let res = load(file_path.to_str().unwrap(), None).expect("lol");
 
-        assert_eq!(res["TEST_KEY_1"], "1");
-        assert_eq!(res["TEST_KEY_2"], "test");
-        assert_eq!(res["TEST_KEY_3"], "3.14");
-        assert_eq!(res["TEST_KEY_4"], "true");
+        assert_eq!(*res["TEST_KEY_1"].as_i64().unwrap(), 1);
+        assert_eq!(*res["TEST_KEY_2"].as_string().unwrap(), "test");
+        assert_eq!(*res["TEST_KEY_3"].as_f64().unwrap(), 3.14);
+        assert_eq!(*res["TEST_KEY_4"].as_bool().unwrap(), true);
 
         drop(file);
         dir.close().unwrap();

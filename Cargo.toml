@@ -4,6 +4,7 @@ version = "1.0.0"
 edition = "2021"
 
 [dependencies]
+enum-as-inner = "0.5.1"
 fxhash = "0.2.1"
 indexmap = "1.9.1"
 yaml-rust = "0.4.5"
