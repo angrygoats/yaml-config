@@ -1,0 +1,19 @@
+[package]
+name = "config"
+version = "1.0.0"
+license = "Apache-2.0"
+description = "Dynamic YAML configuration parser."
+repository = "https://git.xchg.sh/angrygoats/config-rs"
+readme = "README.md"
+edition = "2021"
+
+[dependencies]
+enum-as-inner = "0.5.1"
+fxhash = "0.2.1"
+indexmap = "1.9.1"
+linked-hash-map = "0.5.3"
+yaml-rust = "0.4.5"
+
+[dev-dependencies]
+envtestkit = "1.1.2"
+tempfile = "3.3.0"
