@@ -138,7 +138,7 @@ fn maybe_yaml_to_value(
     }
 }
 
-/// Given a valid path, loads a configuration file.
+/// Loads a configuration file.
 ///
 /// The parser will first load the YAML file. It then re-organizes the YAML
 /// file into a common naming convention. Given:
@@ -159,6 +159,11 @@ fn maybe_yaml_to_value(
 /// provided in the YAML it will prefer the key in the YAML file. To
 /// override this, pass a `Some(Preference::PreferEnv)` to the
 /// `preference` argument.
+///
+/// The resulting `IndexMap` will have string keys representing the path
+/// configuration described above, and values that are contained in the `Value`
+/// enum. See the documentation for `config::Value` for more information on
+/// usage.
 ///
 /// **Examples**
 ///
@@ -212,17 +217,6 @@ pub fn load(
             }
         };
 
-        // TODO:
-        // We can match maybe_val as hash() to do this.
-        // Just use a while loop to go as deep as possible appending to key_str each time.
-        // We need to check if val type is another hash. If it is we have subkey and need
-        // to continue processing until we have the entire path from root -> value. Val
-        // should be pointing at an actual static value by the time it gets to the below.
-
-        // TODO:
-        // Match and convert to string. At a later time we can try doing after-the-fact conversion
-        // based on known maybe val types to go from string -> concrete type. It cannot be done
-        // in one function due to generic parameter restrictions.
         maybe_yaml_to_value(&key_str, maybe_val, prefer_env, &mut config)?;
     }
 
@@ -237,7 +231,7 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
-    fn basic_one_layer() {
+    fn one_layer() {
         let dir = tempdir().unwrap();
         let file_path = dir.path().join("test.yaml");
         let mut file = File::create(&file_path).unwrap();
@@ -257,6 +251,80 @@ mod tests {
         assert_eq!(*res["TEST_KEY_1"].as_i64().unwrap(), 1);
         assert_eq!(*res["TEST_KEY_2"].as_string().unwrap(), "test");
         assert_eq!(*res["TEST_KEY_3"].as_f64().unwrap(), 3.14);
+        assert_eq!(*res["TEST_KEY_4"].as_bool().unwrap(), true);
+
+        drop(file);
+        dir.close().unwrap();
+    }
+
+    #[test]
+    fn two_layer() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.yaml");
+        let mut file = File::create(&file_path).unwrap();
+        writeln!(
+            file,
+            "
+            test_key_1:
+              sub_key_a: 1
+              sub_key_b: 2
+            test_key_2: \"test\"
+            test_key_3:
+              sub_key_a: 3.14
+              sub_key_b: 6.28
+            test_key_4: true
+            ",
+        )
+        .unwrap();
+
+        let res = load(file_path.to_str().unwrap(), None).expect("lol");
+
+        assert_eq!(*res["TEST_KEY_1_SUB_KEY_A"].as_i64().unwrap(), 1);
+        assert_eq!(*res["TEST_KEY_1_SUB_KEY_B"].as_i64().unwrap(), 2);
+        assert_eq!(*res["TEST_KEY_2"].as_string().unwrap(), "test");
+        assert_eq!(*res["TEST_KEY_3_SUB_KEY_A"].as_f64().unwrap(), 3.14);
+        assert_eq!(*res["TEST_KEY_3_SUB_KEY_B"].as_f64().unwrap(), 6.28);
+        assert_eq!(*res["TEST_KEY_4"].as_bool().unwrap(), true);
+
+        drop(file);
+        dir.close().unwrap();
+    }
+
+    #[test]
+    fn three_layer() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.yaml");
+        let mut file = File::create(&file_path).unwrap();
+        writeln!(
+            file,
+            "
+            test_key_1:
+              sub_key_a:
+                sub_sub_key_a: 1
+                sub_sub_key_b: 2
+              sub_key_b: 2
+            test_key_2: \"test\"
+            test_key_3:
+              sub_key_a: 3.14
+              sub_key_b: 6.28
+            test_key_4: true
+            ",
+        )
+        .unwrap();
+
+        let res = load(file_path.to_str().unwrap(), None).expect("lol");
+
+        assert_eq!(
+            *res["TEST_KEY_1_SUB_KEY_A_SUB_SUB_KEY_A"].as_i64().unwrap(),
+            1
+        );
+        assert_eq!(
+            *res["TEST_KEY_1_SUB_KEY_A_SUB_SUB_KEY_B"].as_i64().unwrap(),
+            2
+        );
+        assert_eq!(*res["TEST_KEY_2"].as_string().unwrap(), "test");
+        assert_eq!(*res["TEST_KEY_3_SUB_KEY_A"].as_f64().unwrap(), 3.14);
+        assert_eq!(*res["TEST_KEY_3_SUB_KEY_B"].as_f64().unwrap(), 6.28);
         assert_eq!(*res["TEST_KEY_4"].as_bool().unwrap(), true);
 
         drop(file);
