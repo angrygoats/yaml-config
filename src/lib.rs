@@ -1,9 +1,9 @@
 // TODO: TOMORROW
+//  [ ] - Add test to insure array causes error.
 //  [ ] - Add tests with simulated environment variables.
 //  [ ] - Add tests to insure panic when env var isn't found.
 //  [ ] - Add tests to insure that when env exists and key exists it prefers env.
 //  [ ] - Add tests for when key exists but env does not exist, but prefer env is set it takes the key.
-//  [ ] - Add nesting code. Add tests for array.
 //  [ ] - Run tests make sure everything is kosher. Deploy.
 pub mod error;
 
@@ -180,7 +180,7 @@ fn maybe_yaml_to_value(
     }
 }
 
-/// Converts a YAML key into a String.
+/// Converts a YAML key into a string for processing.
 fn key_string(key: &Yaml) -> Result<&str, ParseError> {
     match key.as_str() {
         Some(s) => Ok(s),
@@ -237,6 +237,13 @@ fn build_map(
             }
             None => key_string(key)?.to_uppercase().to_string(),
         };
+
+        if maybe_val.is_array() {
+            return Err(ParseError {
+                module: "config::build_map".to_string(),
+                message: "Arrays are currently unsupported for configuration.".to_string(),
+            });
+        }
 
         if !maybe_val.as_hash().is_some() {
             // Base condition
