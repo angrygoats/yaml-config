@@ -22,7 +22,7 @@ The YAML file will be parsed into a hashmap using the following rules:
 
 1. Keys are recursively named according to hierarchy. In the example above, one key would be `DATABASE_USERNAME`.
 2. If a key is `null` the environment will be searched using the hierarchy name described in (1).
-3. If a key has a value the behavior is determined by the `preference` argument. If `Preference::PreferEnv` is
+3. If a key has a value the behavior is determined by the `preference` argument to `load`. If `Preference::PreferEnv` is
    given, an environment value will be taken like (2) in all cases. If the environment value is not available it
    will use the YAML file's given key value. If `Preference::PreferYaml` is given, it will take the YAML file always.
 
