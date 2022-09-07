@@ -45,7 +45,7 @@ let configuration = load("path/to/yaml/file.yaml",
                          Some(Preference::PreferEnv))?;
 ```
 
-## Load a File with YAML Preference
+### Load a File with YAML Preference
 
 ```rust
 use config::Preference;
@@ -61,6 +61,17 @@ use config::load;
 let configuration = load("path/to/yaml/file.yaml", None)?;
 ```
 
+### Accessing Values
 
+Values are stored in an enum representing the type.
+
+```rust
+use config::load;
+let configuration = load("path/to/yaml/file.yaml", None)?;
+let val = *config["TEST_ENVIRONMENT_VARIABLE"].as_i64().unwrap();
+```
+
+Due to Rust's strict typing you will be responsible for knowing ahead of time what can populate your variables.
+Even though `unwrap` is shown here it is _highly_ recommend you use `match` to compensate for this.
 
 
