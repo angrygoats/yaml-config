@@ -1,7 +1,7 @@
 # Dynamic Configurator for Rust
 
 The dynamic configuration library is simple: it takes an arbitrary YAML file, parses it into a
-common format, and returns a dictionary of configurations and their keys. It supports environment
+common format, and returns a hashmap of configurations and their keys. It supports environment
 loading as well.
 
 Take for example the following:
@@ -13,20 +13,54 @@ database:
   password: null
   port: null
 logging:
-  level: 'INFO'
+  level: "INFO"
 performance:
   threads: 8
 ```
 
-`config` will parse this into a dictionary as follows:
+The YAML file will be parsed into a hashmap using the following rules:
 
-1. Each key in the dictionary will be given a name `TOP_LEVEL_SUB_LEVEL(S)_KEY_NAME`.
-2. For keys with `null` it will look in the environment with the name given by the dictionary. For
-   example, database name above will be looked for in `DATABASE_NAME`.
-   If it cannot find it in the environment it will panic.
-3. For keys with values, the value is taken. If a key in the environment exists with the same
-   key it will ignore it. To prefer the environment, pass `Settings::PREFER_ENVIRONMENT` to the
-   last argument of `Config::load`.
+1. Keys are recursively named according to hierarchy. In the example above, one key would be `DATABASE_USERNAME`.
+2. If a key is `null` the environment will be searched using the hierarchy name described in (1).
+3. If a key has a value the behavior is determined by the `preference` argument. If `Preference::PreferEnv` is
+   given, an environment value will be taken like (2) in all cases. If the environment value is not available it
+   will use the YAML file's given key value. If `Preference::PreferYaml` is given, it will take the YAML file always.
 
-  **NOTE:** This only supports single YAML documents. It will not load any more than the first
-  document in a multi-document yaml.
+
+## Notes
+
+The parser does not currently support arrays.
+
+The YAML parser is recursive. As a result there is a stack-size limit to the depth of nesting that can be handled.
+
+
+## Examples
+
+### Load a File with Environment Preference
+
+```rust
+use config::Preference;
+use config::load;
+let configuration = load("path/to/yaml/file.yaml",
+                         Some(Preference::PreferEnv))?;
+```
+
+## Load a File with YAML Preference
+
+```rust
+use config::Preference;
+use config::load;
+let configuration = load("path/to/yaml/file.yaml",
+                         Some(Preference::PreferYaml))?;
+```
+
+or
+
+```rust
+use config::load;
+let configuration = load("path/to/yaml/file.yaml", None)?;
+```
+
+
+
+

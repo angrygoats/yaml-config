@@ -1,9 +1,10 @@
-// TODO: TOMORROW
+// TODO: TOMORROW - FINISH FOR DEMO THURS.
 //  [ ] - Add test to insure array causes error.
 //  [ ] - Add tests with simulated environment variables.
 //  [ ] - Add tests to insure panic when env var isn't found.
 //  [ ] - Add tests to insure that when env exists and key exists it prefers env.
 //  [ ] - Add tests for when key exists but env does not exist, but prefer env is set it takes the key.
+//  [ ] - Improve comments.
 //  [ ] - Run tests make sure everything is kosher. Deploy.
 pub mod error;
 
