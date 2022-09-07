@@ -1,6 +1,9 @@
 // TODO: TOMORROW
-//  [ ] - Add test cases for nested/two-three layer nested
-//  [ ] - Add nesting code
+//  [ ] - Add tests with simulated environment variables.
+//  [ ] - Add tests to insure panic when env var isn't found.
+//  [ ] - Add tests to insure that when env exists and key exists it prefers env.
+//  [ ] - Add tests for when key exists but env does not exist, but prefer env is set it takes the key.
+//  [ ] - Add nesting code. Add tests for array.
 //  [ ] - Run tests make sure everything is kosher. Deploy.
 pub mod error;
 
@@ -8,6 +11,7 @@ use crate::error::ParseError;
 use enum_as_inner::EnumAsInner;
 use fxhash::FxBuildHasher;
 use indexmap::IndexMap;
+use linked_hash_map::LinkedHashMap;
 use std::env;
 use std::fs::read_to_string;
 use yaml_rust::{Yaml, YamlLoader};
@@ -23,7 +27,8 @@ pub enum Preference {
 /// A wrapped type enum useful for allowing polymorphic returns from
 /// the map creation function.
 ///
-/// **Examples**
+/// # Examples
+///
 /// fn main() {
 ///
 /// ```rust
@@ -93,41 +98,78 @@ fn maybe_yaml_to_value(
 
     if maybe_val.as_str().is_some() {
         if prefer_env {
-            map.insert(key.to_string(), Value::String(env_or_error(key)?));
+            match env_or_error(key) {
+                Ok(v) => {
+                    map.insert(key.to_string(), Value::String(v));
+                }
+                Err(_) => {
+                    map.insert(
+                        key.to_string(),
+                        Value::String(maybe_val.as_str().unwrap().to_string()),
+                    );
+                }
+            };
+        } else {
+            map.insert(
+                key.to_string(),
+                Value::String(maybe_val.as_str().unwrap().to_string()),
+            );
         }
-        let val = maybe_val.as_str().unwrap().to_string();
-        map.insert(key.to_string(), Value::String(val));
+
         return Ok(());
     }
 
     if maybe_val.as_i64().is_some() {
         if prefer_env {
-            let val = env_or_error(key)?;
-            let e_val = val.parse::<i64>().unwrap();
-            map.insert(key.to_string(), Value::I64(e_val));
+            match env_or_error(key) {
+                Ok(v) => {
+                    let e_val = v.parse::<i64>().unwrap();
+                    map.insert(key.to_string(), Value::I64(e_val));
+                }
+                Err(_) => {
+                    map.insert(key.to_string(), Value::I64(maybe_val.as_i64().unwrap()));
+                }
+            };
+        } else {
+            map.insert(key.to_string(), Value::I64(maybe_val.as_i64().unwrap()));
         }
 
-        map.insert(key.to_string(), Value::I64(maybe_val.as_i64().unwrap()));
         return Ok(());
     }
 
     if maybe_val.as_bool().is_some() {
         if prefer_env {
-            let val = env_or_error(key)?;
-            let e_val = val.parse::<bool>().unwrap();
-            map.insert(key.to_string(), Value::Bool(e_val));
+            match env_or_error(key) {
+                Ok(v) => {
+                    let e_val = v.parse::<bool>().unwrap();
+                    map.insert(key.to_string(), Value::Bool(e_val));
+                }
+                Err(_) => {
+                    map.insert(key.to_string(), Value::Bool(maybe_val.as_bool().unwrap()));
+                }
+            };
+        } else {
+            map.insert(key.to_string(), Value::Bool(maybe_val.as_bool().unwrap()));
         }
-        map.insert(key.to_string(), Value::Bool(maybe_val.as_bool().unwrap()));
+
         return Ok(());
     }
 
     if maybe_val.as_f64().is_some() {
         if prefer_env {
-            let val = env_or_error(key)?;
-            let e_val = val.parse::<f64>().unwrap();
-            map.insert(key.to_string(), Value::F64(e_val));
+            match env_or_error(key) {
+                Ok(v) => {
+                    let e_val = v.parse::<f64>().unwrap();
+                    map.insert(key.to_string(), Value::F64(e_val));
+                }
+                Err(_) => {
+                    map.insert(key.to_string(), Value::F64(maybe_val.as_f64().unwrap()));
+                }
+            };
+        } else {
+            map.insert(key.to_string(), Value::F64(maybe_val.as_f64().unwrap()));
         }
-        map.insert(key.to_string(), Value::F64(maybe_val.as_f64().unwrap()));
+
         Ok(())
     } else {
         let msg = format!("Failed to convert type for {}", key);
@@ -136,6 +178,81 @@ fn maybe_yaml_to_value(
             message: msg,
         })
     }
+}
+
+/// Converts a YAML key into a String.
+fn key_string(key: &Yaml) -> Result<&str, ParseError> {
+    match key.as_str() {
+        Some(s) => Ok(s),
+        None => {
+            return Err(ParseError {
+                module: "config".to_string(),
+                message: format!("Could not convert key {:?} into String.", key),
+            })
+        }
+    }
+}
+
+/// Recursive map builder.
+///
+/// Given a "root" of the yaml file it will generate a configuration recursively. Due
+/// to it's use of recursion the actual depth of the YAML file is limited to the depth of
+/// the stack. But given most (arguably 99.9%) of YAML files are not even 5 levels deep
+/// this seemed like an acceptable trade off for an easier to write algorithm.
+///
+/// Effectively, this performs a depth first search of the YAML file treating each top level
+/// feature as a tree with 1-to-N values. When a concrete (non-hash) value is arrived at
+/// the builder constructs a depth-based string definining it.
+///
+/// The arguments enforce an `FxBuildHasher` based `IndexMap` to insure extremely fast
+/// searching of the map. *this map is modified in place*.
+///
+/// # Arguments
+///
+/// * `root` - The start of the YAML document as given by `yaml-rust`.
+/// * `config` - An IndexMap of String -> Value. It must use an FxBuilderHasher.
+/// * `prefer_env` - When `true` will return an environment variable matching the path string
+///                  regardless of whether the YAML contains a value for this key. It will prefer
+///                  the given value otherwise unless that value is `null`.
+/// * `current_key_str` - An optional argument that stores the current string of the path.
+///
+fn build_map(
+    root: &LinkedHashMap<Yaml, Yaml>,
+    config: &mut IndexMap<String, Value, FxBuildHasher>,
+    prefer_env: bool,
+    current_key_str: Option<&str>,
+) -> Result<(), ParseError> {
+    // Recursively parse each root key to resolve.
+    for key in root.keys() {
+        let maybe_val = &root[key];
+
+        let key_str = match current_key_str {
+            Some(k) => {
+                // In this case we have a previous value.
+                // We need to construct the current depth-related key.
+                let mut next_key = k.to_uppercase().to_string();
+                next_key.push_str("_");
+                next_key.push_str(&key_string(key)?.to_uppercase());
+                next_key
+            }
+            None => key_string(key)?.to_uppercase().to_string(),
+        };
+
+        if !maybe_val.as_hash().is_some() {
+            // Base condition
+            maybe_yaml_to_value(&key_str.to_uppercase(), maybe_val, prefer_env, config)?;
+        } else {
+            // Now we need to construct the key for one layer deeper.
+            build_map(
+                maybe_val.as_hash().unwrap(),
+                config,
+                prefer_env,
+                Some(&key_str),
+            )?;
+        }
+    }
+
+    Ok(())
 }
 
 /// Loads a configuration file.
@@ -165,7 +282,12 @@ fn maybe_yaml_to_value(
 /// enum. See the documentation for `config::Value` for more information on
 /// usage.
 ///
-/// **Examples**
+/// # Arguments
+///
+/// * `file_path` - A string representing the path to the YAML file.
+/// * `preference` - The preference for handling values when a key has a value in the
+///
+/// # Examples
 ///
 /// ```rust
 /// use config::load;
@@ -204,21 +326,7 @@ pub fn load(
 
     let mut config = IndexMap::with_hasher(FxBuildHasher::default());
 
-    for key in user_config.keys() {
-        let maybe_val = &user_config[key];
-
-        let mut key_str = match key.as_str() {
-            Some(s) => s.to_string().to_uppercase(),
-            None => {
-                return Err(ParseError {
-                    module: "config".to_string(),
-                    message: format!("Could not convert key {:?} into String.", key),
-                })
-            }
-        };
-
-        maybe_yaml_to_value(&key_str, maybe_val, prefer_env, &mut config)?;
-    }
+    build_map(&user_config, &mut config, prefer_env, None)?;
 
     Ok(config)
 }
@@ -246,7 +354,7 @@ mod tests {
         )
         .unwrap();
 
-        let res = load(file_path.to_str().unwrap(), None).expect("lol");
+        let res = load(file_path.to_str().unwrap(), None).expect("temp file not loaded.");
 
         assert_eq!(*res["TEST_KEY_1"].as_i64().unwrap(), 1);
         assert_eq!(*res["TEST_KEY_2"].as_string().unwrap(), "test");
