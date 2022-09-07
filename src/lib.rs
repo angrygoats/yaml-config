@@ -1,5 +1,4 @@
 // TODO: TOMORROW
-//  [ ] - Fix comment error checking???
 //  [ ] - Add test cases for nested/two-three layer nested
 //  [ ] - Add nesting code
 //  [ ] - Run tests make sure everything is kosher. Deploy.
@@ -13,6 +12,8 @@ use std::env;
 use std::fs::read_to_string;
 use yaml_rust::{Yaml, YamlLoader};
 
+/// Defines the preference for loading of a configuration when a variable exists in the
+/// YAML and also along the same path in the environment.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Preference {
     PreferYaml,
@@ -24,8 +25,9 @@ pub enum Preference {
 ///
 /// **Examples**
 /// fn main() {
-/// use config::Value;
+///
 /// ```rust
+/// use config::Value;
 /// let x = Value::I32(10);
 /// let val = *x.as_i32().unwrap();
 /// ```
@@ -42,14 +44,6 @@ pub enum Value {
 
 /// Provides a simple way to allow question mark syntax in order to
 /// convert environment errors into ParseErrors.
-///
-/// **Examples**
-///
-/// fn main() {
-/// ```rust
-/// let my_var = env_or_error("TEST_ENVIRONMENT_VARIABLE")?;
-/// ```
-/// }
 fn env_or_error(key: &str) -> Result<String, ParseError> {
     match env::var_os(key) {
         Some(v) => Ok(v
@@ -70,15 +64,6 @@ fn env_or_error(key: &str) -> Result<String, ParseError> {
 /// In addition to doing the initial parsing it will also do environment finding. If a given
 /// key is null, or `prefer_env` is true, then it will search the environment for the given
 /// key string and attempt to use that key string's value.
-///
-/// **Examples***
-///
-/// ```rust
-/// let key_str = "DATABASE_CONFIG_PASSWORD";
-/// let map = IndexMap::new();
-/// let maybe_val = Yaml.from_str("test");
-/// maybe_yaml_to_value(&key_str, &maybe_val, false, &map).expect("Didn't work!");
-/// ```
 ///
 fn maybe_yaml_to_value(
     key: &str,
@@ -178,19 +163,18 @@ fn maybe_yaml_to_value(
 /// **Examples**
 ///
 /// ```rust
-/// use config;
-/// let configuration = config::load("path/to/yaml/file.yaml", None)
-///                         .expect("Failed to load file!");
+/// use config::load;
+/// let configuration = load("path/to/yaml/file.yaml", None);
+///
 /// ```
 ///
 /// Use with preference:
 ///
 /// ```rust
-/// use config;
-/// let configuration = config::load(
-///                             "path/to/yaml/file.yaml",
-///                             Some(config::Preference::PreferEnv)
-///                         ).expect("Failed to load file!");
+/// use config::Preference;
+/// use config::load;
+/// let configuration = load("path/to/yaml/file.yaml",
+///                          Some(Preference::PreferEnv));
 /// ```
 pub fn load(
     file_path: &str,

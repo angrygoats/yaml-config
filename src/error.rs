@@ -16,8 +16,7 @@ use yaml_rust::scanner::ScanError;
 /// **Examples**
 ///
 /// ```rust
-/// pub mod error;
-/// use crate::error::ParseError;
+/// use config::error::ParseError;
 /// let error = ParseError { module: "some_mod".to_string(), message: "something broke!".to_string() };
 /// ```
 #[derive(Debug)]
