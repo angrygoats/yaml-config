@@ -1,10 +1,11 @@
 // TODO: TOMORROW - FINISH FOR DEMO THURS.
-//  [ ] - Add test to insure array causes error.
 //  [ ] - Add tests with simulated environment variables.
-//  [ ] - Add tests to insure panic when env var isn't found.
 //  [ ] - Add tests to insure that when env exists and key exists it prefers env.
 //  [ ] - Add tests for when key exists but env does not exist, but prefer env is set it takes the key.
 //  [ ] - Improve comments.
+//  [ ] - Move tests to own file somewhere look for examples.
+//  [ ] -  https://stackoverflow.com/questions/25530035/how-to-structure-large-number-of-unit-tests
+//  [ ] -    ---> Note the extern crate comment find examples.
 //  [ ] - Run tests make sure everything is kosher. Deploy.
 pub mod error;
 
@@ -341,10 +342,178 @@ pub fn load(
 
 #[cfg(test)]
 mod tests {
-    use super::load;
+    use super::{env_or_error, load, maybe_yaml_to_value, Value};
+    use envtestkit::lock::{lock_read, lock_test};
+    use envtestkit::set_env;
+    use fxhash::{FxBuildHasher, FxHasher};
+    use indexmap::IndexMap;
+    use std::ffi::OsString;
     use std::fs::File;
+    use std::hash::BuildHasherDefault;
     use std::io::Write;
     use tempfile::tempdir;
+    use yaml_rust::Yaml;
+
+    #[test]
+    fn successfully_gets_environment_variable() {
+        let _lock = lock_test();
+        let _test = set_env(OsString::from("TEST_ENV_VAR"), "1");
+        let res = env_or_error("TEST_ENV_VAR").expect("failed to find environment variable.");
+        assert_eq!(res, "1");
+    }
+
+    #[test]
+    fn error_when_environment_variable_is_not_found() {
+        let _lock = lock_read();
+        let res = env_or_error("TEST_ENV_VAR");
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn maybe_yaml_null_gets_environment_variable_i64() {
+        // This simulates something that would be mapped by
+        // ```
+        // test_env:
+        //   var: null
+        // ```
+        let _lock = lock_test();
+        let _test = set_env(OsString::from("TEST_ENV_VAR"), "1");
+        let mut config: IndexMap<String, Value, BuildHasherDefault<FxHasher>> =
+            IndexMap::with_hasher(FxBuildHasher::default());
+
+        let maybe_val = Yaml::from_str("null");
+
+        maybe_yaml_to_value("TEST_ENV_VAR", &maybe_val, false, &mut config).unwrap();
+
+        assert_eq!(*config["TEST_ENV_VAR"].as_i64().unwrap(), 1);
+    }
+
+    #[test]
+    fn maybe_yaml_null_gets_environment_variable_f64() {
+        // This simulates something that would be mapped by
+        // ```
+        // test_env:
+        //   var: null
+        // ```
+        let _lock = lock_test();
+        let _test = set_env(OsString::from("TEST_ENV_VAR"), "3.14");
+        let mut config: IndexMap<String, Value, BuildHasherDefault<FxHasher>> =
+            IndexMap::with_hasher(FxBuildHasher::default());
+
+        let maybe_val = Yaml::from_str("null");
+
+        maybe_yaml_to_value("TEST_ENV_VAR", &maybe_val, false, &mut config).unwrap();
+
+        assert_eq!(*config["TEST_ENV_VAR"].as_f64().unwrap(), 3.14);
+    }
+
+    #[test]
+    fn maybe_yaml_null_gets_environment_variable_bool() {
+        // This simulates something that would be mapped by
+        // ```
+        // test_env:
+        //   var: null
+        // ```
+        let _lock = lock_test();
+        let _test = set_env(OsString::from("TEST_ENV_VAR"), "true");
+        let mut config: IndexMap<String, Value, BuildHasherDefault<FxHasher>> =
+            IndexMap::with_hasher(FxBuildHasher::default());
+
+        let maybe_val = Yaml::from_str("null");
+
+        maybe_yaml_to_value("TEST_ENV_VAR", &maybe_val, false, &mut config).unwrap();
+
+        assert_eq!(*config["TEST_ENV_VAR"].as_bool().unwrap(), true);
+    }
+
+    #[test]
+    fn maybe_yaml_null_gets_environment_variable_string() {
+        // This simulates something that would be mapped by
+        // ```
+        // test_env:
+        //   var: null
+        // ```
+        let _lock = lock_test();
+        let _test = set_env(OsString::from("TEST_ENV_VAR"), "string");
+        let mut config: IndexMap<String, Value, BuildHasherDefault<FxHasher>> =
+            IndexMap::with_hasher(FxBuildHasher::default());
+
+        let maybe_val = Yaml::from_str("null");
+
+        maybe_yaml_to_value("TEST_ENV_VAR", &maybe_val, false, &mut config).unwrap();
+
+        assert_eq!(*config["TEST_ENV_VAR"].as_string().unwrap(), "string");
+    }
+
+    #[test]
+    fn maybe_yaml_null_gets_environment_variable_string_with_prefer_yaml() {
+        // This simulates something that would be mapped by
+        // ```
+        // test_env:
+        //   var: null
+        // ```
+        let _lock = lock_test();
+        let _test = set_env(OsString::from("TEST_ENV_VAR"), "string");
+        let mut config: IndexMap<String, Value, BuildHasherDefault<FxHasher>> =
+            IndexMap::with_hasher(FxBuildHasher::default());
+
+        let maybe_val = Yaml::from_str("null");
+
+        maybe_yaml_to_value("TEST_ENV_VAR", &maybe_val, true, &mut config).unwrap();
+
+        assert_eq!(*config["TEST_ENV_VAR"].as_string().unwrap(), "string");
+    }
+
+    #[test]
+    fn maybe_yaml_gets_i64() {}
+
+    #[test]
+    fn maybe_yaml_gets_i64_env_var_match() {}
+
+    #[test]
+    fn maybe_yaml_gets_f64() {}
+
+    #[test]
+    fn maybe_yaml_gets_f64_env_var_match() {}
+
+    #[test]
+    fn maybe_yaml_gets_bool() {}
+
+    #[test]
+    fn maybe_yaml_gets_bool_env_var_match() {}
+
+    #[test]
+    fn maybe_yaml_gets_string() {}
+
+    #[test]
+    fn maybe_yaml_gets_string_env_var_match() {}
+
+    #[test]
+    fn arrays_are_not_allowed() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.yaml");
+        let mut file = File::create(&file_path).unwrap();
+        writeln!(
+            file,
+            "
+            test_key_1: 1
+            test_key_2: \"test\"
+            test_key_3:
+                - test_1: 0
+                - test_3: 2
+                - test_4: 'a'
+            test_key_4: true
+            ",
+        )
+        .unwrap();
+
+        let res = load(file_path.to_str().unwrap(), None);
+
+        assert!(res.is_err());
+
+        drop(file);
+        dir.close().unwrap();
+    }
 
     #[test]
     fn one_layer() {

@@ -11,8 +11,9 @@ edition = "2021"
 enum-as-inner = "0.5.1"
 fxhash = "0.2.1"
 indexmap = "1.9.1"
-yaml-rust = "0.4.5"
 linked-hash-map = "0.5.3"
+yaml-rust = "0.4.5"
 
 [dev-dependencies]
+envtestkit = "1.1.2"
 tempfile = "3.3.0"
