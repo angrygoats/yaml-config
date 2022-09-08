@@ -26,7 +26,7 @@ jobs:
         with:
             toolchain: nightly
             override: true
-            components: rustfmt, clippy
+            components: rustfmt, clippy, coverage
       - uses: actions/checkout@v3
       - name: Install
         run: cargo install cargo2junit grcov rust-covfix;
@@ -38,6 +38,7 @@ jobs:
           zip -0 ccov.zip `find . \( -name "$PROJECT_NAME*.gc*" \) -print`;
           grcov ccov.zip -s . -t html --llvm --branch --ignore-not-existing --ignore "/*" --ignore "tests/*" -o cov.html;
   sonarcloud:
+    needs: coverage
     name: SonarCloud
     runs-on: ubuntu-latest
     steps:
