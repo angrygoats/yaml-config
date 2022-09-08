@@ -1,5 +1,8 @@
 # Dynamic Configurator for Rust
 
+![Tests](https://github.com/github/docs/actions/workflows/test.yml/badge.svg)
+[![codecov](https://codecov.io/gh/angrygoats/config-rs/branch/master/graph/badge.svg?token=g9p0PPzpzn)](https://codecov.io/gh/angrygoats/config-rs)
+
 The dynamic configuration library is simple: it takes an arbitrary YAML file, parses it into a
 common format, and returns a hashmap of configurations and their keys. It supports environment
 loading as well.

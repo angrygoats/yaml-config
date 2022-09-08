@@ -3,7 +3,7 @@ name = "config"
 version = "1.0.0"
 license = "Apache-2.0"
 description = "Dynamic YAML configuration parser."
-repository = "https://git.xchg.sh/angrygoats/config-rs"
+repository = "https://github.com/angrygoats/config-rs"
 readme = "README.md"
 edition = "2021"
 
