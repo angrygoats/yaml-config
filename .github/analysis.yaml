@@ -5,6 +5,10 @@ on:
       - master
   pull_request:
     types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
 jobs:
   sonarcloud:
     name: SonarCloud
