@@ -39,7 +39,7 @@ jobs:
           rustup component add llvm-tools-preview
           cargo build --verbose
           LLVM_PROFILE_FILE="config_rs-%p-%m.profraw" cargo test --verbose
-          ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+          grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
       - name: Upload to CodeCov
         uses: codecov/codecov-action@v3
         with:
