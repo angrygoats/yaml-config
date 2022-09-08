@@ -1,8 +1,4 @@
 // TODO: TOMORROW - FINISH FOR DEMO THURS.
-//  [ ] - Add tests with simulated environment variables.
-//  [ ] - Add tests to insure that when env exists and key exists it prefers env.
-//  [ ] - Add tests for when key exists but env does not exist, but prefer env is set it takes the key.
-//  [ ] - Improve comments.
 //  [ ] - Move tests to own file somewhere look for examples.
 //  [ ] -  https://stackoverflow.com/questions/25530035/how-to-structure-large-number-of-unit-tests
 //  [ ] -    ---> Note the extern crate comment find examples.
@@ -465,28 +461,156 @@ mod tests {
     }
 
     #[test]
-    fn maybe_yaml_gets_i64() {}
+    fn maybe_yaml_gets_i64() {
+        // This simulates something that would be mapped by
+        // ```
+        // test_var:
+        //   val: 10
+        // ```
+        let mut config: IndexMap<String, Value, BuildHasherDefault<FxHasher>> =
+            IndexMap::with_hasher(FxBuildHasher::default());
+
+        let maybe_val = Yaml::Integer(10);
+
+        maybe_yaml_to_value("TEST_VAR_VAL", &maybe_val, true, &mut config).unwrap();
+
+        assert_eq!(*config["TEST_VAR_VAL"].as_i64().unwrap(), 10);
+    }
 
     #[test]
-    fn maybe_yaml_gets_i64_env_var_match() {}
+    fn maybe_yaml_gets_i64_env_var_match() {
+        // This simulates something that would be mapped by
+        // ```
+        // test_var:
+        //   val: 10
+        // ```
+        // When an environment variable matches and PreferYaml is given.
+        let _lock = lock_test();
+        let _test = set_env(OsString::from("TEST_ENV_VAL"), "15");
+
+        let mut config: IndexMap<String, Value, BuildHasherDefault<FxHasher>> =
+            IndexMap::with_hasher(FxBuildHasher::default());
+
+        let maybe_val = Yaml::Integer(10);
+
+        maybe_yaml_to_value("TEST_VAR_VAL", &maybe_val, true, &mut config).unwrap();
+
+        assert_eq!(*config["TEST_VAR_VAL"].as_i64().unwrap(), 10);
+    }
 
     #[test]
-    fn maybe_yaml_gets_f64() {}
+    fn maybe_yaml_gets_f64() {
+        // This simulates something that would be mapped by
+        // ```
+        // test_var:
+        //   val: 3.14
+        // ```
+        let mut config: IndexMap<String, Value, BuildHasherDefault<FxHasher>> =
+            IndexMap::with_hasher(FxBuildHasher::default());
+
+        let maybe_val = Yaml::from_str("3.14");
+
+        maybe_yaml_to_value("TEST_VAR_VAL", &maybe_val, true, &mut config).unwrap();
+
+        assert_eq!(*config["TEST_VAR_VAL"].as_f64().unwrap(), 3.14);
+    }
 
     #[test]
-    fn maybe_yaml_gets_f64_env_var_match() {}
+    fn maybe_yaml_gets_f64_env_var_match() {
+        // This simulates something that would be mapped by
+        // ```
+        // test_var:
+        //   val: 3.14
+        // ```
+        // When an environment variable matches and PreferYaml is given.
+        let _lock = lock_test();
+        let _test = set_env(OsString::from("TEST_ENV_VAL"), "6.28");
+
+        let mut config: IndexMap<String, Value, BuildHasherDefault<FxHasher>> =
+            IndexMap::with_hasher(FxBuildHasher::default());
+
+        let maybe_val = Yaml::from_str("3.14");
+
+        maybe_yaml_to_value("TEST_VAR_VAL", &maybe_val, true, &mut config).unwrap();
+
+        assert_eq!(*config["TEST_VAR_VAL"].as_f64().unwrap(), 3.14);
+    }
 
     #[test]
-    fn maybe_yaml_gets_bool() {}
+    fn maybe_yaml_gets_bool() {
+        // This simulates something that would be mapped by
+        // ```
+        // test_var:
+        //   val: true
+        // ```
+        let mut config: IndexMap<String, Value, BuildHasherDefault<FxHasher>> =
+            IndexMap::with_hasher(FxBuildHasher::default());
+
+        let maybe_val = Yaml::Boolean(true);
+
+        maybe_yaml_to_value("TEST_VAR_VAL", &maybe_val, true, &mut config).unwrap();
+
+        assert_eq!(*config["TEST_VAR_VAL"].as_bool().unwrap(), true);
+    }
 
     #[test]
-    fn maybe_yaml_gets_bool_env_var_match() {}
+    fn maybe_yaml_gets_bool_env_var_match() {
+        // This simulates something that would be mapped by
+        // ```
+        // test_var:
+        //   val: true
+        // ```
+        // When an environment variable matches and PreferYaml is given.
+        let _lock = lock_test();
+        let _test = set_env(OsString::from("TEST_ENV_VAL"), "true");
+
+        let mut config: IndexMap<String, Value, BuildHasherDefault<FxHasher>> =
+            IndexMap::with_hasher(FxBuildHasher::default());
+
+        let maybe_val = Yaml::Boolean(true);
+
+        maybe_yaml_to_value("TEST_VAR_VAL", &maybe_val, true, &mut config).unwrap();
+
+        assert_eq!(*config["TEST_VAR_VAL"].as_bool().unwrap(), true);
+    }
 
     #[test]
-    fn maybe_yaml_gets_string() {}
+    fn maybe_yaml_gets_string() {
+        // This simulates something that would be mapped by
+        // ```
+        // test_var:
+        //   val: "test"
+        // ```
+        let mut config: IndexMap<String, Value, BuildHasherDefault<FxHasher>> =
+            IndexMap::with_hasher(FxBuildHasher::default());
+
+        let maybe_val = Yaml::String("test".to_string());
+
+        maybe_yaml_to_value("TEST_VAR_VAL", &maybe_val, true, &mut config).unwrap();
+
+        assert_eq!(*config["TEST_VAR_VAL"].as_string().unwrap(), "test");
+    }
 
     #[test]
-    fn maybe_yaml_gets_string_env_var_match() {}
+    fn maybe_yaml_gets_string_env_var_match() {
+        // This simulates something that would be mapped by
+        // ```
+        // test_var:
+        //   val: "test"
+        // ```
+        // When an environment variable matches and PreferYaml is given.
+        let _lock = lock_test();
+        let _test = set_env(OsString::from("TEST_ENV_VAL"), "test");
+
+        let mut config: IndexMap<String, Value, BuildHasherDefault<FxHasher>> =
+            IndexMap::with_hasher(FxBuildHasher::default());
+
+        let maybe_val = Yaml::from_str("test");
+
+        maybe_yaml_to_value("TEST_VAR_VAL", &maybe_val, true, &mut config).unwrap();
+
+        assert_eq!(*config["TEST_VAR_VAL"].as_string().unwrap(), "test");
+    }
 
     #[test]
     fn arrays_are_not_allowed() {
