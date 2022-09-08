@@ -20,18 +20,21 @@ jobs:
     name: Coverage
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            override: true
+            components: rustfmt, clippy, cargo2junit, grcov, rust-covfix
       - uses: actions/checkout@v3
       - name: Build
         run: cargo build --verbose $CARGO_OPTIONS
       - name: Test
         run: |
-              cargo test --verbose $CARGO_OPTIONS
-              zip -0 ccov.zip `find . \( -name "$PROJECT_NAME*.gc*" \) -print`;
-              ./grcov ccov.zip -s . -t html --llvm --branch --ignore-not-existing --ignore "/*" -o cov.html;
-
-
-
-
+          cargo test --features coverage $CARGO_OPTIONS -- -Z unstable-options --format json | cargo2junit > results.xml;
+          zip -0 ccov.zip `find . \( -name "$PROJECT_NAME*.gc*" \) -print`;
+          grcov ccov.zip -s . -t html --llvm --branch --ignore-not-existing --ignore "/*" --ignore "tests/*" -o cov.html;
   sonarcloud:
     name: SonarCloud
     runs-on: ubuntu-latest
