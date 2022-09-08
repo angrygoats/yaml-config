@@ -1,5 +1,5 @@
 # Dynamic Configurator for Rust
-[![Test with Code Coverage](https://github.com/angrygoats/config-rs/actions/workflows/test.yaml/badge.svg)](https://github.com/angrygoats/config-rs/actions/workflows/test.yaml)
+[![Tests](https://github.com/angrygoats/config-rs/actions/workflows/test.yaml/badge.svg)](https://github.com/angrygoats/config-rs/actions/workflows/test.yaml)
 [![codecov](https://codecov.io/gh/angrygoats/config-rs/branch/master/graph/badge.svg?token=g9p0PPzpzn)](https://codecov.io/gh/angrygoats/config-rs)
 
 The dynamic configuration library is simple: it takes an arbitrary YAML file, parses it into a
