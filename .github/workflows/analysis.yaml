@@ -6,10 +6,32 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+env:
+  project_name: config_rs
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: "-Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort"
+  RUSTDOCFLAGS: "-Cpanic=abort"
+
 permissions:
   pull-requests: read
 
 jobs:
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build
+        run: cargo build --verbose $CARGO_OPTIONS
+      - name: Test
+        run: |
+              cargo test --verbose $CARGO_OPTIONS
+              zip -0 ccov.zip `find . \( -name "$PROJECT_NAME*.gc*" \) -print`;
+              ./grcov ccov.zip -s . -t html --llvm --branch --ignore-not-existing --ignore "/*" -o cov.html;
+
+
+
+
   sonarcloud:
     name: SonarCloud
     runs-on: ubuntu-latest
