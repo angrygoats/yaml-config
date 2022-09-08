@@ -177,12 +177,10 @@ fn maybe_yaml_to_value(
 fn key_string(key: &Yaml) -> Result<&str, ParseError> {
     match key.as_str() {
         Some(s) => Ok(s),
-        None => {
-            return Err(ParseError {
-                module: "config".to_string(),
-                message: format!("Could not convert key {:?} into String.", key),
-            })
-        }
+        None => Err(ParseError {
+            module: "config".to_string(),
+            message: format!("Could not convert key {:?} into String.", key),
+        }),
     }
 }
 
@@ -224,7 +222,7 @@ fn build_map(
                 // In this case we have a previous value.
                 // We need to construct the current depth-related key.
                 let mut next_key = k.to_uppercase().to_string();
-                next_key.push_str("_");
+                next_key.push('_');
                 next_key.push_str(&key_string(key)?.to_uppercase());
                 next_key
             }
@@ -238,7 +236,7 @@ fn build_map(
             });
         }
 
-        if !maybe_val.as_hash().is_some() {
+        if maybe_val.as_hash().is_none() {
             // Base condition
             maybe_yaml_to_value(&key_str.to_uppercase(), maybe_val, prefer_env, config)?;
         } else {
@@ -326,7 +324,7 @@ pub fn load(
 
     let mut config = IndexMap::with_hasher(FxBuildHasher::default());
 
-    build_map(&user_config, &mut config, prefer_env, None)?;
+    build_map(user_config, &mut config, prefer_env, None)?;
 
     Ok(config)
 }
