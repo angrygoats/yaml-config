@@ -1,6 +1,7 @@
 pub mod error;
 
-use crate::error::ParseError;
+pub use crate::error::ParseError;
+
 use enum_as_inner::EnumAsInner;
 use fxhash::FxBuildHasher;
 use indexmap::IndexMap;
@@ -25,7 +26,7 @@ pub enum Preference {
 /// fn main() {
 ///
 /// ```rust
-/// use config::Value;
+/// use yaml_config::Value;
 /// let x = Value::I32(10);
 /// let val = *x.as_i32().unwrap();
 /// ```
@@ -288,7 +289,7 @@ fn build_map(
 /// # Examples
 ///
 /// ```rust
-/// use config::load;
+/// use yaml_config::load;
 /// let configuration = load("path/to/yaml/file.yaml", None);
 ///
 /// ```
@@ -296,8 +297,8 @@ fn build_map(
 /// Use with preference:
 ///
 /// ```rust
-/// use config::Preference;
-/// use config::load;
+/// use yaml_config::Preference;
+/// use yaml_config::load;
 /// let configuration = load("path/to/yaml/file.yaml",
 ///                          Some(Preference::PreferEnv));
 /// ```

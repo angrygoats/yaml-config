@@ -16,7 +16,7 @@ use yaml_rust::scanner::ScanError;
 /// **Examples**
 ///
 /// ```rust
-/// use config::error::ParseError;
+/// use yaml_config::error::ParseError;
 /// let error = ParseError { module: "some_mod".to_string(), message: "something broke!".to_string() };
 /// ```
 #[derive(Debug)]

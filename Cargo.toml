@@ -1,11 +1,11 @@
 [package]
-name = "config-rs"
-homepage = "https://github.com/angrygoats/config-rs"
+name = "yaml-config"
+homepage = "https://github.com/angrygoats/yaml-config"
 version = "1.0.0"
 license = "Apache-2.0"
-documentation = "https://docs.rs/config-rs"
+documentation = "https://docs.rs/yaml-config"
 description = "Dynamic YAML configuration parser."
-repository = "https://github.com/angrygoats/config-rs"
+repository = "https://github.com/angrygoats/yaml-config"
 readme = "README.md"
 edition = "2021"
 
