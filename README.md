@@ -41,8 +41,8 @@ The YAML parser is recursive. As a result there is a stack-size limit to the dep
 ### Load a File with Environment Preference
 
 ```rust
-use config::Preference;
-use config::load;
+use yaml_config::Preference;
+use yaml_config::load;
 let configuration = load("path/to/yaml/file.yaml",
                          Some(Preference::PreferEnv))?;
 ```
@@ -50,8 +50,8 @@ let configuration = load("path/to/yaml/file.yaml",
 ### Load a File with YAML Preference
 
 ```rust
-use config::Preference;
-use config::load;
+use yaml_config::Preference;
+use yaml_config::load;
 let configuration = load("path/to/yaml/file.yaml",
                          Some(Preference::PreferYaml))?;
 ```
@@ -59,7 +59,7 @@ let configuration = load("path/to/yaml/file.yaml",
 or
 
 ```rust
-use config::load;
+use yaml_config::load;
 let configuration = load("path/to/yaml/file.yaml", None)?;
 ```
 
@@ -68,7 +68,7 @@ let configuration = load("path/to/yaml/file.yaml", None)?;
 Values are stored in an enum representing the type.
 
 ```rust
-use config::load;
+use yaml_config::load;
 let configuration = load("path/to/yaml/file.yaml", None)?;
 let val = *config["TEST_ENVIRONMENT_VARIABLE"].as_i64().unwrap();
 ```
