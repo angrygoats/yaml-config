@@ -16,7 +16,7 @@ use yaml_rust::scanner::ScanError;
 /// **Examples**
 ///
 /// ```rust
-/// use config::error::ParseError;
+/// use yaml_config::error::ParseError;
 /// let error = ParseError { module: "some_mod".to_string(), message: "something broke!".to_string() };
 /// ```
 #[derive(Debug)]
@@ -55,5 +55,38 @@ impl From<Error> for ParseError {
             module: String::from("std::io"),
             message: error.to_string(),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::ParseError;
+    use std::env::VarError;
+    use std::io::Error;
+
+    #[test]
+    fn test_display_trait() {
+        let error = ParseError {
+            module: "test::test".to_string(),
+            message: "test error".to_string(),
+        };
+        assert_eq!(format!("{}", error), "test::test: test error")
+    }
+
+    // ScanError cant be tested due to private fields.
+
+    #[test]
+    fn test_var_error() {
+        let error = ParseError::from(VarError::NotPresent);
+        assert_eq!(
+            format!("{}", error),
+            "std::env: environment variable not found"
+        );
+    }
+
+    #[test]
+    fn test_error() {
+        let error = ParseError::from(Error::new(std::io::ErrorKind::Unsupported, "bad news"));
+        assert_eq!(format!("{}", error), "std::io: bad news");
     }
 }
